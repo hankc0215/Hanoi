@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanoi & Sapa Vibes (Editable)</title>
+    <!-- 引入 React 和 Tailwind -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Framer Motion (保留用於過場動畫) -->
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+
+<body class="bg-slate-100">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const { motion, AnimatePresence } = window.Motion;
+
+        // --- 圖標定義 ---
+        const Icons = {
+            Plane: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h20"/><path d="M13 2l9 10-9 10"/><path d="m2 12 5-5m-5 5 5 5"/></svg>,
+            MapPin: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>,
+            Moon: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>,
+            Coffee: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>,
+            Camera: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
+            Ticket: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>,
+            Mountain: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg>,
+            Waves: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>,
+            ChevronRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
+            Trash2: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+            Plus: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+            CheckCircle2: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>,
+            Link: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+            HardDrive: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg>,
+            Map: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>,
+            AlertCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
+            X: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+            FileText: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>,
+            Grid: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>,
+            List: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>,
+            ExternalLink: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>,
+            ArrowUp: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>,
+            ArrowDown: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>,
+            Cloud: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M17.5 19H6.5"/><path d="M12 13.5V6"/><path d="m15.5 9.5-3.5-3.5-3.5 3.5"/></svg>,
+            Loader: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
+            Check: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            RefreshCw: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>,
+            AlertTriangle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
+        };
+
+        const CLOUD_DRIVE_URL = "https://drive.google.com/drive/folders/1n1eQP_LYUm7tHBDk4PSJrD3vwqCIdrzk?usp=sharing";
+        const GOOGLE_MAPS_URL = "https://www.google.com/maps/d/edit?mid=1M8ZXJepWnosRULglS9BMT95leGdmzRo&usp=sharing";
+
+        const initialItinerary = {
+          day1: {
+            date: "1/30 (四)",
+            title: "初抵河內 & 臥鋪體驗",
+            theme: "city",
+            events: [
+              { id: "1", time: "07:35", title: "桃園機場 T2 出發", type: "flight", notes: "帶著愉快的心情出發！", files: [] },
+              { id: "2", time: "09:50", title: "抵達河內內排機場 T2", type: "flight", notes: "辦理入境、換匯、網卡", files: [] },
+              { id: "4", time: "12:00", title: "河內市區 City Walk", type: "food", notes: "吃河粉、逛逛、喝蛋咖啡", files: [] },
+              { id: "5", time: "16:00", title: "越式按摩鬆一下", type: "relax", notes: "消除搭機疲勞", files: [] },
+              { id: "6", time: "21:00", title: "前往車站集合 (阮友勳街)", type: "transport", notes: "河內市還劍郡阮友勳街70號", files: [{ id: 'map-station', name: '集合地點', url: 'https://www.google.com/maps/search/70+Nguyễn+Hữu+Huân', type: 'map' }] },
+            ]
+          },
+          day2: {
+            date: "1/31 (五)",
+            title: "番西邦峰傳奇",
+            theme: "mountain",
+            events: [
+              { id: "7", time: "06:00", title: "抵達沙壩 (Sapa)", type: "transport", notes: "寄放行李 @ 住宿點", files: [] },
+              { id: "8", time: "09:00", title: "太陽世界番西邦峰傳奇", type: "ticket", notes: "搭乘單軌列車 + 纜車 (Klook 憑證)", files: [] },
+              { id: "9", time: "14:00", title: "番西邦峰頂 & 天空步道", type: "camera", notes: "欣賞雲海與日落", files: [] },
+              { id: "10", time: "19:00", title: "沙壩夜市", type: "food", notes: "享受山區美食", files: [] },
+              { id: "11", time: "21:00", title: "入住沙壩 (待定)", type: "stay", notes: "住宿地點尚未決定", files: [] },
+            ]
+          },
+          day3: {
+            date: "2/1 (六)",
+            title: "貓貓村與孟花谷",
+            theme: "mountain",
+            events: [
+              { id: "12", time: "09:00", title: "貓貓村 (Cat Cat Village)", type: "camera", notes: "是否需要導覽？", files: [] },
+              { id: "13", time: "11:00", title: "孟花谷 (Muong Hoa Valley)", type: "scene", notes: "梯田美景", files: [] },
+              { id: "14", time: "13:00", title: "沙壩市場 & 午餐", type: "food", notes: "在地小吃體驗", files: [] },
+              { id: "15", time: "15:00", title: "臥鋪巴士返回河內", type: "transport", notes: "下午班次", files: [] },
+              { id: "16", time: "20:00", title: "晚間按摩 & 休息", type: "relax", notes: "", files: [] },
+              { id: "17", time: "22:00", title: "入住民宿", type: "stay", notes: "連住兩晚", files: [{ id: 'map-day3-new', name: '住宿地圖', url: 'https://maps.app.goo.gl/zoCfoo9R47rCrdeMA', type: 'map' }] },
+            ]
+          },
+          day4: {
+            date: "2/2 (日)",
+            title: "河內慢活 & 米其林",
+            theme: "city",
+            events: [
+              { id: "18", time: "10:00", title: "睡到自然醒 / 洗衣服", type: "relax", notes: "享受民宿設施", files: [] },
+              { id: "19", time: "12:00", title: "米其林推薦餐廳午餐", type: "food", notes: "需提前訂位？", files: [] },
+              { id: "20", time: "15:00", title: "河內市區自由探索", type: "camera", notes: "還劍湖周邊", files: [] },
+              { id: "21", time: "20:00", title: "入住民宿", type: "stay", notes: "連住兩晚", files: [{ id: 'map-day4-new', name: '住宿地圖', url: 'https://maps.app.goo.gl/zoCfoo9R47rCrdeMA', type: 'map' }] },
+            ]
+          },
+          day5: {
+            date: "2/3 (一)",
+            title: "下龍灣遊輪之旅",
+            theme: "water",
+            events: [
+              { id: "22", time: "08:30", title: "出發前往下龍灣", type: "transport", notes: "攜帶泳衣、輕便行李", files: [] },
+              { id: "23", time: "12:00", title: "登船 / 購買行程", type: "ticket", notes: "確認行程內容", files: [] },
+              { id: "24", time: "15:00", title: "下龍灣遊覽", type: "scene", notes: "獨木舟、鐘乳石洞", files: [] },
+              { id: "25", time: "19:00", title: "入住飯店", type: "stay", notes: "下龍灣住宿", files: [{ id: 'map-day5-new', name: '住宿地圖', url: 'https://maps.app.goo.gl/1difh4en44bPVqoGA', type: 'map' }] },
+            ]
+          },
+          day6: {
+            date: "2/4 (二)",
+            title: "告別越南",
+            theme: "city",
+            events: [
+              { id: "26", time: "10:00", title: "返回河內市區", type: "transport", notes: "", files: [] },
+              { id: "27", time: "13:00", title: "吃 Red Bean 餐廳", type: "food", notes: "最後的美食巡禮", files: [] },
+              { id: "28", time: "15:00", title: "前往機場", type: "transport", notes: "", files: [] },
+              { id: "29", time: "17:35", title: "河內機場 T2 起飛", type: "flight", notes: "VN 航班", files: [] },
+              { id: "30", time: "21:05", title: "抵達桃園機場 T2", type: "flight", notes: "平安回家", files: [] },
+            ]
+          },
+        };
+
+        // --- 樣式設定 ---
+        const ThemeColors = {
+          city: "from-orange-100 to-amber-50 text-amber-900",
+          mountain: "from-emerald-100 to-teal-50 text-emerald-900",
+          water: "from-cyan-100 to-blue-50 text-blue-900",
+        };
+
+        // --- 確認視窗組件 ---
+        const ConfirmModal = ({ isOpen, onClose, onConfirm, message }) => {
+          if (!isOpen) return null;
+          return (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-gray-100">
+                <h3 className="text-lg font-bold text-gray-800 mb-2">確認刪除</h3>
+                <p className="text-gray-600 mb-6">{message}</p>
+                <div className="flex justify-end gap-3">
+                  <button onClick={onClose} className="px-4 py-2 text-gray-500 font-medium hover:bg-gray-100 rounded-xl transition-colors">取消</button>
+                  <button onClick={onConfirm} className="px-5 py-2 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all">刪除</button>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        // --- 瀏覽器儲存權限警告組件 ---
+        const StorageWarning = () => (
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+                <p className="font-bold flex items-center gap-2"><Icons.AlertTriangle size={18}/> 注意：無法儲存編輯</p>
+                <p className="text-sm">您的瀏覽器或嵌入環境似乎阻擋了本地儲存 (LocalStorage)。重新整理後，您的編輯將會消失。建議在一般瀏覽器視窗中開啟此頁面。</p>
+            </div>
+        );
+
+        // --- 行程事件組件 ---
+        function EventItem({ event, index, totalItems, dayKey, handleEdit, handleDeleteActivity, handleDeleteFile, onMoveUp, onMoveDown }) {
+          const Icon = Icons[event.type] && Icons[event.type]({size: 20, strokeWidth: 1.5}) ? Icons[event.type] : Icons.MapPin;
+          
+          // 動態選取 Icon (修復可能的 undefined 問題)
+          const IconComponent = Icons[event.type] || Icons.MapPin;
+
+          return (
+            <div className="relative z-10 group list-none">
+              <div className="flex items-start gap-3 md:gap-4">
+                {/* 排序控制 & 圖標 */}
+                <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                   <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm border border-white/60 bg-white text-gray-700">
+                      <IconComponent size={20} strokeWidth={1.5} />
+                   </div>
+                   
+                   {/* 排序按鈕 */}
+                   <div className="flex flex-col gap-1 mt-1">
+                      {index > 0 && (
+                        <button 
+                          onClick={() => onMoveUp(dayKey, index)}
+                          className="p-1 rounded-md bg-white/50 hover:bg-white text-gray-500 hover:text-teal-600 shadow-sm border border-gray-200 transition-colors"
+                          title="上移"
+                        >
+                          <Icons.ArrowUp size={14} />
+                        </button>
+                      )}
+                      {index < totalItems - 1 && (
+                        <button 
+                          onClick={() => onMoveDown(dayKey, index)}
+                          className="p-1 rounded-md bg-white/50 hover:bg-white text-gray-500 hover:text-teal-600 shadow-sm border border-gray-200 transition-colors"
+                          title="下移"
+                        >
+                          <Icons.ArrowDown size={14} />
+                        </button>
+                      )}
+                   </div>
+                </div>
+
+                <div className="flex-grow bg-white/60 hover:bg-white/80 transition-all duration-300 rounded-2xl p-4 shadow-sm border border-white/40 group-hover:shadow-lg backdrop-blur-sm">
+                  <div className="flex justify-between items-start">
+                    <div className="w-full">
+                      <div className="flex items-center gap-2 mb-1">
+                        <input 
+                          className="bg-transparent font-mono text-xs font-bold text-teal-600 w-20 focus:outline-none focus:bg-white/50 rounded px-1 hover:bg-white/50 transition-colors"
+                          value={event.time}
+                          onChange={(e) => handleEdit(dayKey, event.id, 'time', e.target.value)}
+                          placeholder="00:00"
+                        />
+                        <div className="h-px bg-gray-300 flex-grow opacity-50"></div>
+                      </div>
+                      <input 
+                        className="bg-transparent text-lg font-bold text-gray-800 w-full focus:outline-none focus:ring-2 focus:ring-teal-200 rounded px-1 -ml-1 hover:bg-white/50 transition-colors"
+                        value={event.title}
+                        onChange={(e) => handleEdit(dayKey, event.id, 'title', e.target.value)}
+                        placeholder="行程標題"
+                      />
+                      <input 
+                        className="bg-transparent text-sm text-gray-500 w-full mt-1 focus:outline-none focus:bg-white/50 rounded px-1 -ml-1 hover:bg-white/50 transition-colors"
+                        value={event.notes}
+                        onChange={(e) => handleEdit(dayKey, event.id, 'notes', e.target.value)}
+                        placeholder="添加備註..."
+                      />
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {event.files && event.files.map(file => (
+                          <div key={file.id} className={`group/file flex items-center gap-2 border rounded-lg px-2 py-1 text-xs transition-colors ${file.type === 'map' ? 'bg-green-50 border-green-200 hover:border-green-400' : 'bg-white/80 border-gray-200 hover:border-teal-400'}`}>
+                            {file.type === 'map' ? <Icons.MapPin size={12} className="text-green-600"/> : <Icons.Link size={12} className="text-teal-600"/>}
+                            <a 
+                              href={file.url} 
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-gray-700 font-medium hover:text-teal-600 truncate max-w-[100px] cursor-pointer"
+                            >
+                              {file.name}
+                            </a>
+                            <button 
+                              onClick={() => handleDeleteFile(dayKey, event.id, file.id)}
+                              className="text-gray-400 hover:text-red-500 ml-1 opacity-0 group-hover/file:opacity-100 transition-opacity"
+                            >
+                              <Icons.X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex-shrink-0 ml-2">
+                      <button 
+                        onClick={() => handleDeleteActivity(dayKey, event.id)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-300 hover:bg-red-50 hover:text-red-500 transition-colors"
+                        title="刪除此項"
+                      >
+                        <Icons.Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        function App() {
+          const [activeTab, setActiveTab] = useState("day1");
+          const [storageAvailable, setStorageAvailable] = useState(true);
+          const [saveStatus, setSaveStatus] = useState('saved'); 
+          const [isDriveView, setIsDriveView] = useState(false);
+          const [confirmModal, setConfirmModal] = useState({ isOpen: false, action: null, message: "" });
+          
+          // 檢查 localStorage 是否可用
+          useEffect(() => {
+              try {
+                  const testKey = '__test__';
+                  localStorage.setItem(testKey, testKey);
+                  localStorage.removeItem(testKey);
+                  setStorageAvailable(true);
+              } catch (e) {
+                  setStorageAvailable(false);
+                  setSaveStatus('error');
+              }
+          }, []);
+
+          // --- 惰性初始化 (Lazy Initialization) ---
+          // 這是解決「重新整理後消失」的關鍵：只在首次渲染時讀取一次，之後不再讀取
+          const [itinerary, setItinerary] = useState(() => {
+             try {
+                const saved = localStorage.getItem('hanoi_itinerary');
+                return saved ? JSON.parse(saved) : initialItinerary;
+             } catch(e) {
+                return initialItinerary;
+             }
+          });
+
+          const [todos, setTodos] = useState(() => {
+             try {
+                const saved = localStorage.getItem('hanoi_todos');
+                return saved ? JSON.parse(saved) : [];
+             } catch(e) {
+                return [];
+             }
+          });
+
+          const [generalDocs, setGeneralDocs] = useState(() => {
+             try {
+                const saved = localStorage.getItem('hanoi_docs');
+                return saved ? JSON.parse(saved) : [];
+             } catch(e) {
+                return [];
+             }
+          });
+
+          const [visaStatus, setVisaStatus] = useState(() => {
+             try {
+                const saved = localStorage.getItem('hanoi_visa');
+                return saved ? JSON.parse(saved) : false;
+             } catch(e) {
+                return false;
+             }
+          });
+
+          const [newTodo, setNewTodo] = useState("");
+          
+          const driveFolderId = useMemo(() => {
+             const matches = CLOUD_DRIVE_URL.match(/folders\/([a-zA-Z0-9_-]+)/);
+             return matches ? matches[1] : null;
+          }, []);
+
+          // 僅執行一次的副作用：如果沒有文件連結，預設開啟雲端硬碟模式
+          useEffect(() => {
+             if (generalDocs.length === 0) {
+                 setIsDriveView(true);
+             }
+          }, []);
+
+          // --- 核心儲存函數 ---
+          const saveToLocal = (key, data) => {
+             setSaveStatus('saving');
+             try {
+                localStorage.setItem(key, JSON.stringify(data));
+                // 使用短延遲模擬儲存中狀態，給予使用者反饋
+                setTimeout(() => setSaveStatus('saved'), 600);
+             } catch(e) {
+                console.error("Save failed:", e);
+                setSaveStatus('error');
+             }
+          };
+
+          // --- 行程操作 ---
+          const handleMoveUp = (dayKey, index) => {
+             if (index <= 0) return;
+             const newEvents = [...itinerary[dayKey].events];
+             [newEvents[index - 1], newEvents[index]] = [newEvents[index], newEvents[index - 1]];
+             
+             const newItinerary = {
+                ...itinerary,
+                [dayKey]: { ...itinerary[dayKey], events: newEvents }
+             };
+             setItinerary(newItinerary);
+             saveToLocal('hanoi_itinerary', newItinerary);
+          };
+
+          const handleMoveDown = (dayKey, index) => {
+             const currentEvents = itinerary[dayKey].events;
+             if (index >= currentEvents.length - 1) return;
+             
+             const newEvents = [...currentEvents];
+             [newEvents[index + 1], newEvents[index]] = [newEvents[index], newEvents[index + 1]];
+             
+             const newItinerary = {
+                ...itinerary,
+                [dayKey]: { ...itinerary[dayKey], events: newEvents }
+             };
+             setItinerary(newItinerary);
+             saveToLocal('hanoi_itinerary', newItinerary);
+          };
+
+          const handleEdit = (dayKey, eventId, field, value) => {
+            const newItinerary = { 
+                ...itinerary,
+                [dayKey]: {
+                    ...itinerary[dayKey],
+                    events: itinerary[dayKey].events.map(event => 
+                        event.id === eventId ? { ...event, [field]: value } : event
+                    )
+                }
+            };
+            setItinerary(newItinerary);
+            saveToLocal('hanoi_itinerary', newItinerary);
+          };
+
+          const handleAddActivity = () => {
+            const newItinerary = { ...itinerary };
+            const newEvent = {
+              id: Date.now().toString(),
+              time: "00:00",
+              title: "新行程",
+              type: "default", 
+              notes: "點擊編輯",
+              files: []
+            };
+            newItinerary[activeTab].events.push(newEvent);
+            setItinerary(newItinerary);
+            saveToLocal('hanoi_itinerary', newItinerary);
+          };
+
+          const handleDeleteActivity = (dayKey, eventId) => {
+            setConfirmModal({
+              isOpen: true,
+              message: "確定要刪除這個行程嗎？此動作無法復原。",
+              action: () => {
+                const newItinerary = { ...itinerary };
+                newItinerary[dayKey].events = newItinerary[dayKey].events.filter(e => e.id !== eventId);
+                setItinerary(newItinerary);
+                saveToLocal('hanoi_itinerary', newItinerary);
+                setConfirmModal({ isOpen: false, action: null, message: "" });
+              }
+            });
+          };
+          
+          const handleDeleteFile = (dayKey, eventId, fileId) => {
+            const newItinerary = { ...itinerary };
+            const eventIndex = newItinerary[dayKey].events.findIndex(e => e.id === eventId);
+            if (eventIndex > -1 && newItinerary[dayKey].events[eventIndex].files) {
+              newItinerary[dayKey].events[eventIndex].files = newItinerary[dayKey].events[eventIndex].files.filter(f => f.id !== fileId);
+              setItinerary(newItinerary);
+              saveToLocal('hanoi_itinerary', newItinerary);
+            }
+          };
+
+          // --- 雜項操作 ---
+          const toggleTodo = (id) => {
+            const newTodos = todos.map(t => t.id === id ? { ...t, done: !t.done } : t);
+            setTodos(newTodos);
+            saveToLocal('hanoi_todos', newTodos);
+          };
+
+          const handleAddTodo = () => {
+            if (!newTodo.trim()) return;
+            const newItem = { id: Date.now().toString(), task: newTodo, done: false };
+            const newTodos = [...todos, newItem];
+            setTodos(newTodos);
+            saveToLocal('hanoi_todos', newTodos);
+            setNewTodo("");
+          };
+
+          const handleDeleteTodo = (id) => {
+            const newTodos = todos.filter(t => t.id !== id);
+            setTodos(newTodos);
+            saveToLocal('hanoi_todos', newTodos);
+          };
+
+          const toggleVisa = () => {
+            const newStatus = !visaStatus;
+            setVisaStatus(newStatus);
+            saveToLocal('hanoi_visa', newStatus);
+          };
+
+          const handleDeleteDoc = (id) => {
+             const newDocs = generalDocs.filter(d => d.id !== id);
+             setGeneralDocs(newDocs);
+             saveToLocal('hanoi_docs', newDocs);
+          };
+          
+          const handleAddDoc = () => {
+             const name = prompt("請輸入文件名稱");
+             if (!name) return;
+             const url = prompt("請輸入連結 URL");
+             if (!url) return;
+             
+             const isMap = url.includes('google.com/maps') || url.includes('goo.gl/maps');
+             const newDoc = { id: Date.now().toString(), name, url, type: isMap ? 'map' : 'link' };
+             const newDocs = [...generalDocs, newDoc];
+             setGeneralDocs(newDocs);
+             saveToLocal('hanoi_docs', newDocs);
+          };
+
+          const handleResetData = () => {
+             if(confirm("確定要重置所有資料嗎？所有的編輯都將消失並恢復為預設值。")) {
+                 localStorage.removeItem('hanoi_itinerary');
+                 localStorage.removeItem('hanoi_todos');
+                 localStorage.removeItem('hanoi_docs');
+                 localStorage.removeItem('hanoi_visa');
+                 window.location.reload();
+             }
+          };
+
+          const currentTheme = itinerary[activeTab] ? itinerary[activeTab].theme : 'city';
+
+          return (
+            <div className={`min-h-screen bg-gradient-to-br ${itinerary[activeTab] ? ThemeColors[currentTheme].replace('text-', 'from-') : "from-slate-100 to-slate-200"} p-4 md:p-8 font-sans transition-colors duration-700 pb-20`}>
+              
+              <ConfirmModal 
+                isOpen={confirmModal.isOpen} 
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })} 
+                onConfirm={confirmModal.action}
+                message={confirmModal.message}
+              />
+
+              <div className="max-w-4xl mx-auto">
+                {/* 儲存權限警告 */}
+                {!storageAvailable && <StorageWarning />}
+
+                {/* Header */}
+                <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end backdrop-blur-md bg-white/30 p-6 rounded-3xl shadow-xl border border-white/40 gap-4">
+                  <div>
+                    <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 tracking-tight mb-2">
+                      Hanoi & Sapa <span className="text-teal-600">Vibes</span>
+                    </h1>
+                    <p className="text-gray-600 font-medium opacity-80">奎翗的越南探索之旅 • 2025/01/30 - 02/04</p>
+                  </div>
+                  <div className="text-left md:text-right w-full md:w-auto flex flex-col items-end gap-2">
+                    <div className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-1">準備狀態</div>
+                    <div className="flex gap-2 items-center justify-start md:justify-end flex-wrap">
+                      <button 
+                        onClick={toggleVisa}
+                        className={`px-3 py-1 rounded-full text-xs font-bold border transition-all flex items-center gap-1 ${visaStatus ? 'bg-green-500/20 text-green-700 border-green-500/30' : 'bg-red-500/10 text-red-600 border-red-500/20 grayscale'}`}
+                      >
+                        {visaStatus ? <Icons.CheckCircle2 size={12}/> : <Icons.AlertCircle size={12}/>}
+                        簽證 {visaStatus ? "已完成" : "辦理中"}
+                      </button>
+                    </div>
+                    
+                    {/* 儲存狀態指示器 */}
+                    <div className="flex items-center gap-1.5 text-xs font-medium transition-all duration-300 mt-1 h-5">
+                        {saveStatus === 'saving' ? (
+                            <span className="text-blue-500 flex items-center gap-1">
+                                <span className="animate-spin"><Icons.Loader size={12}/></span> 正在儲存...
+                            </span>
+                        ) : saveStatus === 'error' ? (
+                            <span className="text-red-500 flex items-center gap-1">
+                                <Icons.AlertTriangle size={12}/> 儲存失敗 (權限受限)
+                            </span>
+                        ) : (
+                            <span className="text-green-600 flex items-center gap-1 opacity-70">
+                                <Icons.Check size={12}/> 已儲存
+                            </span>
+                        )}
+                    </div>
+                  </div>
+                </header>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  
+                  <div className="lg:col-span-2">
+                    {/* Tabs */}
+                    <div className="flex overflow-x-auto pb-4 gap-3 no-scrollbar mb-4">
+                      {Object.keys(itinerary).map((key) => (
+                        <button
+                          key={key}
+                          onClick={() => setActiveTab(key)}
+                          className={`flex-shrink-0 px-5 py-3 rounded-2xl font-bold transition-all duration-300 transform ${
+                            activeTab === key 
+                              ? "bg-gray-800 text-white shadow-lg scale-105" 
+                              : "bg-white/40 text-gray-600 hover:bg-white/60"
+                          }`}
+                        >
+                          <span className="block text-xs opacity-60 uppercase tracking-wider">{key.replace("day", "Day ")}</span>
+                          <span className="text-sm whitespace-nowrap">{itinerary[key].date}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Content Area */}
+                    <AnimatePresence mode='wait'>
+                      <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="bg-white/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-6 min-h-[600px]"
+                      >
+                        <div className="flex items-center justify-between mb-8">
+                           <div>
+                              <h2 className="text-2xl font-bold text-gray-800">{itinerary[activeTab].title}</h2>
+                              <p className="text-gray-500 text-xs mt-1 flex items-center gap-2 opacity-60">
+                                  使用 <Icons.ArrowUp size={12}/> <Icons.ArrowDown size={12}/> 按鈕調整順序
+                              </p>
+                           </div>
+                           <div className={`p-3 rounded-full bg-gradient-to-tr ${ThemeColors[currentTheme]} shadow-inner`}>
+                              {itinerary[activeTab].theme === 'mountain' ? <Icons.Mountain size={24}/> : itinerary[activeTab].theme === 'water' ? <Icons.Waves size={24}/> : <Icons.Coffee size={24}/>}
+                           </div>
+                        </div>
+
+                        <div className="space-y-6 relative">
+                          <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-gray-300/30 rounded-full z-0"></div>
+
+                          <div className="flex flex-col gap-4">
+                              {itinerary[activeTab].events.map((event, index) => (
+                                <EventItem 
+                                  key={event.id}
+                                  index={index}
+                                  totalItems={itinerary[activeTab].events.length}
+                                  event={event}
+                                  dayKey={activeTab}
+                                  handleEdit={handleEdit}
+                                  handleDeleteActivity={handleDeleteActivity}
+                                  handleDeleteFile={handleDeleteFile}
+                                  onMoveUp={handleMoveUp}
+                                  onMoveDown={handleMoveDown}
+                                />
+                              ))}
+                          </div>
+
+                          <motion.button 
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
+                            onClick={handleAddActivity}
+                            className="w-full py-4 border-2 border-dashed border-gray-300/60 rounded-2xl text-gray-400 font-medium hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50/30 transition-all flex items-center justify-center gap-2 ml-[3.5rem] w-[calc(100%-3.5rem)]"
+                          >
+                            <Icons.Plus size={18} /> 新增行程項目
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Sidebar */}
+                  <div className="lg:col-span-1 space-y-6">
+                    
+                    {/* Quick Links */}
+                    <div className="bg-gradient-to-r from-green-600 to-teal-700 rounded-3xl p-5 text-white shadow-lg space-y-3">
+                        <h3 className="font-bold flex items-center gap-2 text-lg mb-1">
+                            <Icons.Map size={20}/> 快速跳轉
+                        </h3>
+                        <a 
+                            href={GOOGLE_MAPS_URL}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full bg-white text-green-700 font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-green-50 transition-colors shadow-inner"
+                        >
+                            開啟 Google Maps 路線圖
+                        </a>
+                        <a 
+                            href={CLOUD_DRIVE_URL}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full bg-white/20 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-white/30 transition-colors border border-white/30"
+                        >
+                            <Icons.HardDrive size={18}/> 我的雲端硬碟
+                        </a>
+                    </div>
+
+                    {/* Todo List */}
+                    <div className="bg-white/50 backdrop-blur-md rounded-3xl p-6 shadow-lg border border-white/60">
+                      <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <Icons.CheckCircle2 size={20} className="text-teal-600"/> 待辦清單
+                      </h3>
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                        {todos.map(todo => (
+                          <div key={todo.id} className="group flex items-center p-3 bg-white/60 rounded-xl hover:bg-white transition-all border border-transparent hover:border-teal-100">
+                            <div 
+                              className={`flex-shrink-0 w-5 h-5 rounded-md border-2 mr-3 flex items-center justify-center cursor-pointer transition-colors ${todo.done ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}
+                              onClick={() => toggleTodo(todo.id)}
+                            >
+                              {todo.done && <Icons.CheckCircle2 size={12} className="text-white" />}
+                            </div>
+                            <span 
+                              className={`flex-grow text-sm font-medium ${todo.done ? 'text-gray-400 line-through' : 'text-gray-700'}`}
+                            >
+                              {todo.task}
+                            </span>
+                            <button 
+                              onClick={() => handleDeleteTodo(todo.id)}
+                              className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity"
+                            >
+                              <Icons.Trash2 size={14}/>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-4 flex items-center gap-2">
+                        <input 
+                          type="text" 
+                          value={newTodo}
+                          onChange={(e) => setNewTodo(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()}
+                          placeholder="新增..."
+                          className="flex-grow bg-white/50 border border-white/60 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-200"
+                        />
+                        <button 
+                          onClick={handleAddTodo}
+                          className="bg-teal-600 text-white p-2 rounded-xl hover:bg-teal-700 shadow-md"
+                        >
+                          <Icons.Plus size={18}/>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* General Docs with Google Drive Integration */}
+                    <div className="bg-white/50 backdrop-blur-md rounded-3xl p-6 shadow-lg border border-white/60">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <Icons.FileText size={20} className="text-blue-600"/> 重要文件
+                        </h3>
+                        <div className="flex gap-1 bg-white/50 p-1 rounded-lg">
+                            <button 
+                                onClick={() => setIsDriveView(false)}
+                                className={`p-1.5 rounded-md transition-all ${!isDriveView ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                                title="清單模式"
+                            >
+                                <Icons.List size={16} />
+                            </button>
+                            <button 
+                                onClick={() => setIsDriveView(true)}
+                                className={`p-1.5 rounded-md transition-all ${isDriveView ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                                title="雲端硬碟模式"
+                            >
+                                <Icons.Grid size={16} />
+                            </button>
+                        </div>
+                       </div>
+                      
+                      {isDriveView ? (
+                          <div className="w-full h-64 bg-white rounded-xl overflow-hidden border border-gray-200 relative">
+                             {driveFolderId ? (
+                                <>
+                                    <iframe 
+                                        src={`https://drive.google.com/embeddedfolderview?id=${driveFolderId}#list`}
+                                        className="w-full h-full border-none"
+                                        title="Google Drive Folder"
+                                    ></iframe>
+                                    <a 
+                                        href={CLOUD_DRIVE_URL}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="absolute bottom-2 right-2 bg-white/90 text-xs px-2 py-1 rounded shadow text-blue-600 flex items-center gap-1 hover:bg-white"
+                                    >
+                                        <Icons.ExternalLink size={10}/> 外部開啟
+                                    </a>
+                                </>
+                             ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-gray-400 text-sm p-4 text-center">
+                                    <Icons.AlertCircle size={24} className="mb-2" />
+                                    無法偵測到有效的 Google Drive 資料夾 ID
+                                </div>
+                             )}
+                          </div>
+                      ) : (
+                          <div className="space-y-3">
+                            <div className="flex justify-end mb-2">
+                                <button 
+                                   onClick={handleAddDoc}
+                                   className="text-xs bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-200 font-bold flex items-center gap-1"
+                                >
+                                  <Icons.Plus size={12}/> 新增
+                                </button>
+                            </div>
+                             {generalDocs.map(doc => (
+                                <div key={doc.id} className="group flex items-center gap-3 p-2 bg-white rounded-lg shadow-sm">
+                                  <div className={`p-2 rounded flex-shrink-0 ${doc.type === 'map' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                                      {doc.type === 'map' ? <Icons.Map size={16}/> : <Icons.Link size={16}/>}
+                                  </div>
+                                  <div className="flex-grow overflow-hidden">
+                                    <a 
+                                        href={doc.url} 
+                                        target="_blank" 
+                                        rel="noreferrer"
+                                        className="text-sm font-medium text-gray-700 truncate block hover:text-blue-600"
+                                    >
+                                        {doc.name}
+                                    </a>
+                                  </div>
+                                  <button 
+                                    onClick={() => handleDeleteDoc(doc.id)}
+                                    className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <Icons.Trash2 size={14} />
+                                  </button>
+                                </div>
+                             ))}
+                             {generalDocs.length === 0 && <p className="text-xs text-gray-400 text-center py-2">尚無手動連結，請切換至雲端硬碟模式查看檔案</p>}
+                          </div>
+                      )}
+                    </div>
+
+                  </div>
+                </div>
+                
+                {/* 底部重置按鈕 */}
+                <div className="mt-12 text-center border-t border-gray-200 pt-8 pb-4">
+                    <button 
+                       onClick={handleResetData}
+                       className="text-xs text-gray-400 hover:text-red-500 flex items-center justify-center gap-1 mx-auto transition-colors"
+                    >
+                       <Icons.RefreshCw size={12}/> 重置所有資料 (恢復預設)
+                    </button>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
