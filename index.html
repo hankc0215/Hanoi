@@ -16,6 +16,12 @@
         body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* 增加數字輸入框的樣式調整 */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+          -webkit-appearance: none; 
+          margin: 0; 
+        }
     </style>
 </head>
 
@@ -95,6 +101,11 @@
             AlertTriangle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
             Download: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
             Upload: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
+            DollarSign: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+            Sun: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>,
+            CloudRain: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></svg>,
+            Thermometer: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>,
+            Wind: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>,
         };
 
         const CLOUD_DRIVE_URL = "https://drive.google.com/drive/folders/1n1eQP_LYUm7tHBDk4PSJrD3vwqCIdrzk?usp=sharing";
@@ -203,6 +214,117 @@
                 <p className="text-sm">目前資料僅儲存於本機。若在 Google Sites 中重新整理，資料可能會消失。建議填入 Firebase Config 或使用下方的「手動備份」功能。</p>
             </div>
         );
+
+        // 新增：匯率計算機小工具
+        const CurrencyConverter = () => {
+            const [rate, setRate] = useState(780); // 預設匯率 1 TWD = 780 VND
+            const [twd, setTwd] = useState(1);
+            const [vnd, setVnd] = useState(780);
+
+            const handleTwdChange = (e) => {
+                const val = e.target.value;
+                setTwd(val);
+                setVnd(val ? (parseFloat(val) * rate).toFixed(0) : "");
+            };
+
+            const handleVndChange = (e) => {
+                const val = e.target.value;
+                setVnd(val);
+                setTwd(val ? (parseFloat(val) / rate).toFixed(2) : "");
+            };
+
+            const handleRateChange = (e) => {
+                const newRate = e.target.value;
+                setRate(newRate);
+                setVnd(twd ? (parseFloat(twd) * newRate).toFixed(0) : "");
+            };
+
+            return (
+                <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-5 text-white shadow-lg space-y-4">
+                    <h3 className="font-bold flex items-center gap-2 text-lg mb-1">
+                        <Icons.DollarSign size={20}/> 匯率計算機
+                    </h3>
+                    
+                    <div className="space-y-3">
+                         <div className="flex items-center gap-2 bg-white/10 rounded-xl p-2">
+                             <span className="text-xs font-bold w-12 text-center text-indigo-200">匯率</span>
+                             <span className="text-sm">1 : </span>
+                             <input 
+                                type="number" 
+                                value={rate} 
+                                onChange={handleRateChange}
+                                className="bg-transparent text-white font-mono font-bold w-full focus:outline-none border-b border-white/30 focus:border-white text-center"
+                             />
+                         </div>
+
+                         <div className="relative">
+                            <label className="text-xs text-indigo-200 absolute left-3 top-2">TWD (台幣)</label>
+                            <input 
+                                type="number" 
+                                value={twd} 
+                                onChange={handleTwdChange}
+                                className="w-full bg-white/20 rounded-xl px-3 pt-6 pb-2 text-lg font-bold text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
+                            />
+                         </div>
+
+                         <div className="flex justify-center -my-1 opacity-50"><Icons.ArrowDown size={16}/></div>
+
+                         <div className="relative">
+                            <label className="text-xs text-indigo-200 absolute left-3 top-2">VND (越南盾)</label>
+                            <input 
+                                type="number" 
+                                value={vnd} 
+                                onChange={handleVndChange}
+                                className="w-full bg-white/20 rounded-xl px-3 pt-6 pb-2 text-lg font-bold text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
+                            />
+                         </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 新增：天氣預報小工具
+        const WeatherForecast = () => {
+            const forecasts = [
+                { date: "1/30", day: "四", loc: "河內", temp: "14-20°", icon: "Cloud", desc: "涼爽舒適" },
+                { date: "1/31", day: "五", loc: "沙壩", temp: "6-13°", icon: "Wind", desc: "多霧寒冷" },
+                { date: "2/1", day: "六", loc: "沙壩", temp: "7-14°", icon: "CloudRain", desc: "偶有小雨" },
+                { date: "2/2", day: "日", loc: "河內", temp: "15-21°", icon: "Cloud", desc: "多雲轉晴" },
+                { date: "2/3", day: "一", loc: "下龍", temp: "16-22°", icon: "Sun", desc: "海風舒適" },
+                { date: "2/4", day: "二", loc: "河內", temp: "16-23°", icon: "Sun", desc: "溫暖晴朗" },
+            ];
+
+            return (
+                <div className="bg-white/50 backdrop-blur-md rounded-3xl p-6 shadow-lg border border-white/60">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <Icons.Cloud size={20} className="text-sky-500"/> 天氣預報
+                    </h3>
+                    <div className="space-y-3">
+                        {forecasts.map((f, idx) => {
+                            const IconComp = Icons[f.icon] || Icons.Cloud;
+                            return (
+                                <div key={idx} className="flex items-center justify-between text-sm group hover:bg-white/50 p-1.5 rounded-lg transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex flex-col items-center w-8">
+                                            <span className="font-bold text-gray-700">{f.date}</span>
+                                            <span className="text-[10px] text-gray-500">{f.day}</span>
+                                        </div>
+                                        <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center">
+                                            <IconComp size={16}/>
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-gray-800">{f.loc}</div>
+                                            <div className="text-xs text-gray-500">{f.desc}</div>
+                                        </div>
+                                    </div>
+                                    <div className="font-mono font-bold text-gray-600">{f.temp}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
 
         function EventItem({ event, index, totalItems, dayKey, handleEdit, handleDeleteActivity, handleDeleteFile, handleAddFileToEvent, onMoveUp, onMoveDown }) {
           const IconComponent = Icons[event.type] || Icons.MapPin;
@@ -681,6 +803,12 @@
                   </div>
 
                   <div className="lg:col-span-1 space-y-6">
+                    {/* 匯率計算機 */}
+                    <CurrencyConverter />
+                    
+                    {/* 天氣預報 */}
+                    <WeatherForecast />
+
                     <div className="bg-gradient-to-r from-green-600 to-teal-700 rounded-3xl p-5 text-white shadow-lg space-y-3">
                         <h3 className="font-bold flex items-center gap-2 text-lg mb-1"><Icons.Map size={20}/> 快速跳轉</h3>
                         <a href={GOOGLE_MAPS_URL} target="_blank" rel="noreferrer" className="w-full bg-white text-green-700 font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-green-50 transition-colors shadow-inner">開啟 Google Maps 路線圖</a>
